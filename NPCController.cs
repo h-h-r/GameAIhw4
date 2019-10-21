@@ -32,6 +32,9 @@ public class NPCController : MonoBehaviour {
         line = GetComponent<LineRenderer>();
         position = rb.position;
         orientation = transform.eulerAngles.y;
+
+        GameObject[] wolfGroup = GameObject.FindGameObjectsWithTag("Wolf");
+        
     }
 
     /// <summary>
@@ -44,10 +47,12 @@ public class NPCController : MonoBehaviour {
                 if (label) {
                     // replace "First algorithm" with the name of the actual algorithm you're demoing
                     // do this for each phase
-                    label.text = name.Replace("(Clone)","") + "\nAlgorithm: First algorithm"; 
+                    //label.text = name.Replace("(Clone)","") + "\nAlgorithm: First algorithm"; 
                 }
-                linear = ai.Pursue();   // For example
-                angular = ai.Face();    // For example
+                linear = ai.FlockingAcc();
+                angular = ai.FaceTo(velocity);
+                
+                
 
                 // linear = ai.whatever();  -- replace with the desired calls
                 // angular = ai.whatever();

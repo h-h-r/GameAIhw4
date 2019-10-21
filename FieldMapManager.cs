@@ -220,7 +220,7 @@ public class FieldMapManager : MonoBehaviour {
 
         for (int i = 0; i < 20; i++)
         {
-            spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText3, 0));
+            spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText3, 1));
         }
         currentPhase = 1;
         previousPhase = 1;
@@ -272,7 +272,7 @@ public class FieldMapManager : MonoBehaviour {
         }
         temp.GetComponent<NPCController>().label = spawnText;
         temp.GetComponent<NPCController>().phase = phase;
-        Camera.main.GetComponent<CameraController>().player = temp;
+        //Camera.main.GetComponent<CameraController>().player = temp;
         return temp;
     }
 
