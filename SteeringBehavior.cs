@@ -42,6 +42,15 @@ public class SteeringBehavior : MonoBehaviour {
     // Holds the path to follow
     public GameObject[] Path;
     public int current = 0;
+    public GameObject[] WolfPath;
+    public GameObject[] HunterPath;
+
+    public int separationWeight = 3;
+    public int alignmentWeight = 2;
+    public int cohesionWeight = 1;
+
+    public float separationRadius = 1.5f;
+    
 
     protected void Start() {
         agent = GetComponent<NPCController>();
@@ -49,48 +58,78 @@ public class SteeringBehavior : MonoBehaviour {
         red = GameObject.FindGameObjectWithTag("Red").GetComponent<NPCController>();
     }
 
-    public Vector3 Seek() {
-        return new Vector3(0f, 0f, 0f);
-    }
-
-    public Vector3 Flee()
+    
+    public Vector3 SeparationAcc()
     {
-        return new Vector3(0f, 0f, 0f);
-    }
-
-
-    // Calculate the target to pursue
-    public Vector3 Pursue() {
-        return new Vector3(0f, 0f, 0f);
-    }
-
-    public float Face()
-    {
-        return 0f;
-    }
-
-    public Vector3 SeparationAcc(string tag)
-    {
-
-        GameObject[] group = GameObject.FindGameObjectsWithTag(tag);
-        //print(group.Length+">>>\n");
 
         Vector3 linear_acc = new Vector3(0f, 0f, 0f);
-
-        for(int i = 0; i < group.Length; i++)
+        Collider[] group = Physics.OverlapSphere(agent.position, separationRadius);
+        //print(group.Length + "=> length\n");
+        for (int i = 0; i < group.Length; i++)
         {
-            Vector3 direction = agent.position - group[i].GetComponent<NPCController>().position;
-            //if agent with group[i] too close
-            if (direction.magnitude>0.00001 && direction.magnitude < 2f)
+            if (group[i].tag == "Wolf" || group[i].tag == "Red" || group[i].tag == "Hunter" )
             {
-                linear_acc += direction / direction.magnitude /direction.magnitude;
-                //print("i:" + i + ", linearacc " + linear_acc + "\n");
+                //Debug.Log("trans:<" + group[i].transform.position + "> npc<" + group[i].GetComponent<NPCController>().position+">\n");
+                Vector3 direction = agent.position - group[i].GetComponent<NPCController>().position;
+                if (direction.magnitude > 0.0001f)
+                {
+                    //group[i].GetComponent<SteeringBehavior>().agent.DrawCircle(agent.position, 0.5f);
+                    linear_acc += direction / direction.magnitude / direction.magnitude;
+                }
+
+                if (group[i].tag == "Red")
+                {
+                    linear_acc += 2 * direction / direction.magnitude / direction.magnitude;
+                }
+
             }
+
+            //print(">>>" + group[i].tag + ".\n");
         }
-        //check for red
-        if ((agent.position - red.position).magnitude < 2f)
+        linear_acc = linear_acc.normalized;
+        linear_acc *= maxAcceleration;
+        //print("linear acc = " + linear_acc + "\n");
+        return linear_acc;
+    }
+
+    public Vector3 SeparationAccWithPrediction()
+    {
+
+        Vector3 linear_acc = new Vector3(0f, 0f, 0f);
+        Collider[] group = Physics.OverlapSphere(agent.position, separationRadius);
+        //print(group.Length + "=> length\n");
+        for (int i = 0; i < group.Length; i++)
         {
-            linear_acc += 5*(agent.position - red.position).normalized;
+            if (group[i].tag == "Wolf" || group[i].tag == "Red" || group[i].tag == "Hunter")
+            {
+                //Debug.Log("trans:<" + group[i].transform.position + "> npc<" + group[i].GetComponent<NPCController>().position+">\n");
+                //Vector3 
+                Vector3 direction;
+                if (agent.tag != group[i].tag)
+                {
+                    //Debug.Log
+                    direction = Evade(group[i].GetComponent<NPCController>());
+                    linear_acc +=  5 * direction / direction.magnitude / direction.magnitude;
+                }
+                else
+                {
+                    direction = agent.position - group[i].GetComponent<NPCController>().position;
+                }
+               
+                if (direction.magnitude > 0.0001f)
+                {
+                    //group[i].GetComponent<SteeringBehavior>().agent.DrawCircle(agent.position, 0.5f);
+                    linear_acc += direction / direction.magnitude / direction.magnitude;
+                }
+
+                if (group[i].tag == "Red")
+                {
+                    linear_acc += 2 * direction / direction.magnitude / direction.magnitude;
+                }
+
+            }
+
+            //print(">>>" + group[i].tag + ".\n");
         }
         linear_acc = linear_acc.normalized;
         linear_acc *= maxAcceleration;
@@ -99,30 +138,43 @@ public class SteeringBehavior : MonoBehaviour {
     }
 
 
-    public Vector3 CohesionAcc()
+    public Vector3 CohesionAcc(NPCController leader)
     {
-       
-        //return Arrive(red.position - agent.position);
+        //if (leader != null)
+        //{
+        //    return Arrive(leader.position - agent.position);
+        //}
+        
 
         //Vector3 linear_acc = new Vector3(0f, 0f, 0f);
 
         //return linear_acc;
-        GameObject[] group = GameObject.FindGameObjectsWithTag("Wolf");
+        GameObject[] group = GameObject.FindGameObjectsWithTag(agent.tag);
         Vector3 avgPosition = new Vector3(0f, 0f, 0f);
         for (int i = 0; i < group.Length; i++)
         {
             avgPosition += group[i].GetComponent<NPCController>().position;
         }
-        avgPosition += group.Length * red.position;
-        avgPosition /= (group.Length*2);
+
+        if (leader != null)
+        {
+            avgPosition += 2 * group.Length * leader.position;
+            avgPosition /= (group.Length * 3);
+        }
+        else
+        {
+            avgPosition /= group.Length;
+        }
+        
         return Arrive(avgPosition - agent.position);
 
     }
 
-    public Vector3 Align(string tag)
+    public Vector3 Align(NPCController leader)
     {
 
-        GameObject[] group = GameObject.FindGameObjectsWithTag(tag);
+        //GameObject[] group = GameObject.FindGameObjectsWithTag(tag);
+        Collider[] group = Physics.OverlapSphere(agent.position, 4f);
         //print(group.Length+">>>\n");
 
         Vector3 linear_acc = new Vector3(0f, 0f, 0f);
@@ -131,22 +183,29 @@ public class SteeringBehavior : MonoBehaviour {
 
         for (int i = 0; i < group.Length; i++)
         {
-            Vector3 direction = agent.position - group[i].GetComponent<NPCController>().position;
-            //if agent with group[i] too close
-            if (direction.magnitude > 0.00001 && direction.magnitude < 4f)
+            if (group[i].tag == agent.tag)
             {
-                avg_velocity += group[i].GetComponent<NPCController>().velocity;
-                count += 1;
-                //linear_acc += direction / direction.magnitude / direction.magnitude;
-                //print("i:" + i + ", linearacc " + linear_acc + "\n");
+                Vector3 direction = agent.position - group[i].GetComponent<NPCController>().position;
+                //if agent with group[i] too close
+                if (direction.magnitude > 0.00001)
+                {
+                    avg_velocity += group[i].GetComponent<NPCController>().velocity;
+                    count += 1;
+                    //linear_acc += direction / direction.magnitude / direction.magnitude;
+                    //print("i:" + i + ", linearacc " + linear_acc + "\n");
+                }
             }
         }
-
-        if ((red.position - agent.position).magnitude < 4f)
+        //if have leader
+        if (leader != null)
         {
-            avg_velocity += red.velocity;
-            count+=1;
+            if ((leader.position - agent.position).magnitude < 4f)
+            {
+                avg_velocity += leader.velocity;
+                count += 1;
+            }
         }
+       
 
         if (count == 0)
         {
@@ -158,32 +217,262 @@ public class SteeringBehavior : MonoBehaviour {
             linear_acc = (avg_velocity - agent.velocity).normalized * maxAcceleration;
             return linear_acc;
         }
-        //check for red
-        if ((agent.position - red.position).magnitude < 2f)
-        {
-            linear_acc += 5 * (agent.position - red.position).normalized;
-        }
-        linear_acc = linear_acc.normalized;
-        linear_acc *= maxAcceleration;
-        //print("linear acc = " + linear_acc + "\n");
-        return linear_acc;
+        
     }
+    
 
-
-
-    public Vector3 FlockingAcc()
+    public Vector3 FlockingAccWithLeader(NPCController red)
     {
         Vector3 linear_acc = new Vector3(0f, 0f, 0f);
-        linear_acc += 3* SeparationAcc("Wolf");
-        linear_acc += 1* CohesionAcc();
-        linear_acc += 2 * Align("Wolf");
+        linear_acc += this.separationWeight * SeparationAcc();
+        linear_acc += this.alignmentWeight * Align(red);
+        linear_acc += this.cohesionWeight * CohesionAcc(red);
+        
         linear_acc = linear_acc.normalized;
         linear_acc *= maxAcceleration;
+        //print(linear_acc + ">>\n");
+        return linear_acc;
+    }
+
+    //expect target is leader
+    public Vector3 FlockingAccWithLeader()
+    {
+        Vector3 linear_acc = new Vector3(0f, 0f, 0f);
+        //linear_acc += this.separationWeight * SeparationAcc();
+        linear_acc += this.separationWeight * SeparationAccWithPrediction();
+        linear_acc += this.alignmentWeight * Align(this.target);
+        linear_acc += this.cohesionWeight * CohesionAcc(this.target);
+
+        linear_acc = linear_acc.normalized;
+        linear_acc *= maxAcceleration;
+        //print(linear_acc + ">>\n");
+        return linear_acc;
+    }
+
+    public Vector3 FlockingAccWithPathFollowing()
+    {
+        Vector3 linear_acc = new Vector3(0f, 0f, 0f);
+        linear_acc += this.separationWeight * SeparationAcc();
+        linear_acc += this.alignmentWeight * Align(null);
+        linear_acc += this.cohesionWeight * CohesionAcc(null);
+
+        linear_acc += 6 * this.PathFollow().Item1;
+
+        linear_acc = linear_acc.normalized;
+        linear_acc *= maxAcceleration;
+        //print(linear_acc + ">>\n");
+        
         return linear_acc;
     }
 
 
-    // ETC.
+    // ETC. ===================================================previuos algo (Some maybe slightly modified)
+    //Haoran
+    //evade from target
+    //return linear acc
+    public Vector3 Evade()
+    {
+        float distance = (target.position - agent.position).magnitude;
+
+        // speed scalar
+        float speed = agent.velocity.magnitude;
+
+        // if speed small-> use bigger predictionTime
+        float prediction = (speed <= distance / maxPrediction ? maxPrediction : distance / speed);
+
+        //draw prediction circle
+        agent.DrawCircle(target.position + target.velocity * prediction, 0.5f);
+
+        //direction to evade prediction point
+        Vector3 linear_acc = agent.position - (target.position + target.velocity * prediction);
+
+        //clip to map linear acc
+        linear_acc.Normalize();
+        linear_acc *= maxAcceleration;
+
+        return linear_acc;
+    }
+
+    public Vector3 Evade(NPCController target)
+    {
+        float distance = (target.position - agent.position).magnitude;
+
+        // speed scalar
+        float speed = agent.velocity.magnitude;
+
+        // if speed small-> use bigger predictionTime
+        float prediction = (speed <= distance / maxPrediction ? maxPrediction : distance / speed);
+
+        //draw prediction circle
+        agent.DrawCircle(target.position + target.velocity * prediction, 0.5f);
+
+        //direction to evade prediction point
+        Vector3 linear_acc = agent.position - (target.position + target.velocity * prediction);
+
+        //clip to map linear acc
+        linear_acc.Normalize();
+        linear_acc *= maxAcceleration;
+
+        return linear_acc;
+    }
+
+    //Haoran
+    //pathfollow
+    public (Vector3, float) PathFollow()
+    {
+        Vector3 targetOnPath = new Vector3(0,0,0);
+        if (agent.tag == "Wolf")
+        {
+            //Debug.Log(">>>" + this.WolfPath.Length);
+            targetOnPath = computeTargetOnThePath(this.WolfPath);
+        }
+        else if (agent.tag == "Hunter")
+        {
+            //Debug.Log(">>" + this.WolfPath.Length);
+            targetOnPath = computeTargetOnThePath(this.HunterPath);
+        }
+       
+        //Debug.Log(targetOnPath);
+        if (target == null)
+        {
+            agent.DrawCircle(targetOnPath, 0.3f);
+        }
+        
+        Vector3 linearAcc = Seek(targetOnPath);
+        float angularAcc = FaceTo(targetOnPath - agent.position);
+        return (linearAcc, angularAcc);
+    }
+
+    //Haoran
+    //pathfollow helper function: find the target position on path
+    private Vector3 computeTargetOnThePath(GameObject[] Path)
+    {
+        //compute line vectors,  n nodes => n-1 vectors
+        List<Vector3> lineVectors = new List<Vector3>();
+        for (int i = 1; i < Path.Length; i++)
+        {
+            lineVectors.Add(Path[i].transform.position - Path[i - 1].transform.position);
+            //Debug.Log(i + "$" + lineVectors[i - 1]);
+        }
+        //Debug.Log(agent.position);
+        //compute projected points, n nodes => n-1 vectors => n-1 prjected points 
+        List<Vector3> projectedPoints = new List<Vector3>();
+        for (int i = 0; i < lineVectors.Count; i++)
+        {
+            //Debug.Log(i+"?"+ (Path[i].transform.position + Vector3.Project(agent.position - Path[i].transform.position, lineVectors[i])));
+            //projectedPoints.Add(Path[i].transform.position + Vector3.Project(agent.position- Path[i].transform.position, lineVectors[i] ));
+            //agent.DrawCircle(Path[i].transform.position + Vector3.Project(agent.position - Path[i].transform.position, lineVectors[i]),0.5f);
+            projectedPoints.Add(FindNearestPointOnLine(Path[i].transform.position, Path[i + 1].transform.position, agent.position));
+            //Debug.Log(i + "?" + FindNearestPointOnLine(Path[i].transform.position, Path[i + 1].transform.position, agent.position));
+
+
+
+        }
+
+        //find nearest projection point
+        int index = 0;
+        Vector3 nearestPoint = new Vector3(0, 0, 0);
+        float distance = Mathf.Infinity;
+
+        List<float> distList = new List<float>();
+
+
+        for (int i = 0; i < projectedPoints.Count; i++)
+        {
+            if ((agent.position - projectedPoints[i]).magnitude < distance)
+            {
+                distance = (agent.position - projectedPoints[i]).magnitude;
+                index = i;
+                nearestPoint = projectedPoints[i];
+            }
+        }
+
+        //Debug.Log("Nearest Index = " + index + ".");
+        //agent.DrawCircle(nearestPoint, 0.3f);
+
+        //calculate the target to seek
+        //index 0 ~ n-1
+        float lookAheadDistance = 2;
+        Vector3 targetPoint = new Vector3(0, 0, 0);
+
+        //Debug.Log
+        //Debug.Log(index + ">index\n");
+        //Debug.Log(Path[index + 1] + ">p index+1\n");
+
+        if ((Path[Path.Length-1].transform.position - projectedPoints[index]).magnitude < lookAheadDistance)
+        {
+            return Path[Path.Length - 1].transform.position;
+        }
+
+        if (lookAheadDistance < (Path[index + 1].transform.position - projectedPoints[index]).magnitude)
+        {
+            targetPoint = projectedPoints[index] + lookAheadDistance * (lineVectors[index].normalized);
+        }
+        else
+        {
+            lookAheadDistance -= (Path[index + 1].transform.position - projectedPoints[index]).magnitude;
+            for (int k = index + 1; k < lineVectors.Count; k++)
+            {
+                if (lineVectors[k].magnitude < lookAheadDistance)
+                {
+                    lookAheadDistance -= lineVectors[k].magnitude;
+                }
+                else
+                {
+                    targetPoint = projectedPoints[k] + lookAheadDistance * (lineVectors[k].normalized);
+                    //check last segment
+                    if (k == lineVectors.Count - 1 && lookAheadDistance > lineVectors[k].magnitude)
+                    {
+                        targetPoint = Path[k + 1].transform.position;
+                    }
+                    break;
+                }
+            }
+
+        }
+
+        return targetPoint;
+
+    }
+
+    //Haoran
+    // find nearest position on line segment
+    private Vector3 FindNearestPointOnLine(Vector3 origin, Vector3 end, Vector3 point)
+    {
+        //Get heading
+        Vector3 heading = (end - origin);
+        float magnitudeMax = heading.magnitude;
+        heading.Normalize();
+
+        //Do projection from the point but clamp it
+        Vector3 lhs = point - origin;
+        float dotP = Vector3.Dot(lhs, heading);
+        dotP = Mathf.Clamp(dotP, 0f, magnitudeMax);
+        return origin + heading * dotP;
+    }
+
+    //Haoran
+    //seek target
+    //return linear acc
+    public Vector3 Seek()
+    {
+        return Seek(target.position);
+    }
+    public Vector3 Seek(Vector3 targetPosition)
+    {
+        Vector3 linear_acc = targetPosition - agent.position; //seek direction vector
+
+        //clip to max linear acceleration
+        if (linear_acc.magnitude > this.maxAcceleration)
+        {
+            linear_acc = linear_acc.normalized * maxAcceleration;
+        }
+
+        //clip to max speed is handled in the UpdateMovement in NPCController.cs 
+        //angular acceleration will be handled by face()  
+
+        return linear_acc;  //returns the linear acc 
+    }
 
     //Haoran
     //dynamic arrive given target
@@ -238,6 +527,15 @@ public class SteeringBehavior : MonoBehaviour {
         }
 
         return linear_acc;
+    }
+
+    //Haoran
+    // Calculate the angular acceleration required to rotate to target
+    //return angular acc
+    public float Face()
+    {
+        Vector3 direction = target.position - agent.position;
+        return FaceTo(direction);
     }
 
     //Haoran

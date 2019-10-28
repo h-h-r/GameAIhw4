@@ -26,6 +26,8 @@ public class NPCController : MonoBehaviour {
     public Text label;              // Used to displaying text nearby the agent as it moves around
     LineRenderer line;              // Used to draw circles and other things
 
+    GameObject red;
+
     private void Start() {
         ai = GetComponent<SteeringBehavior>();
         rb = GetComponent<Rigidbody>();
@@ -34,7 +36,9 @@ public class NPCController : MonoBehaviour {
         orientation = transform.eulerAngles.y;
 
         GameObject[] wolfGroup = GameObject.FindGameObjectsWithTag("Wolf");
-        
+
+        red = GameObject.FindGameObjectWithTag("Red");
+
     }
 
     /// <summary>
@@ -49,29 +53,38 @@ public class NPCController : MonoBehaviour {
                     // do this for each phase
                     //label.text = name.Replace("(Clone)","") + "\nAlgorithm: First algorithm"; 
                 }
-                linear = ai.FlockingAcc();
+                linear = ai.FlockingAccWithLeader(red.GetComponent<NPCController>() );
                 angular = ai.FaceTo(velocity);
-                
-                
+                //print("linear<< " + linear + "\n");
+
+
 
                 // linear = ai.whatever();  -- replace with the desired calls
                 // angular = ai.whatever();
                 break;
             case 2:
+                //LEADER
                 if (label) {
                     label.text = name.Replace("(Clone)", "") + "\nAlgorithm: Second algorithm";
                 }
 
-                // linear = ai.whatever();  -- replace with the desired calls
-                // angular = ai.whatever();
+                //linear = ai.PathFollow().Item1;
+                linear = 2 * ai.FlockingAccWithPathFollowing();
+                linear += ai.CohesionAcc(null);
+                linear = linear.normalized * ai.maxAcceleration;
+                angular = ai.FaceTo(velocity);
+                
                 break;
             case 3:
+                //FOLLOWERS
                 if (label) {
                     label.text = name.Replace("(Clone)", "") + "\nAlgorithm: Third algorithm";
                 }
-
-                // linear = ai.whatever();  -- replace with the desired calls
-                // angular = ai.whatever();
+                DestroyPoints();
+                linear = 5* ai.FlockingAccWithLeader();
+                linear += ai.FlockingAccWithPathFollowing();
+                angular = ai.Face();
+                
                 break;
             case 4:
                 if (label) {
@@ -97,16 +110,19 @@ public class NPCController : MonoBehaviour {
     }
 
     private void update(Vector3 steeringlin, float steeringang, float time) {
+        //Debug.Log(steeringlin + " " + time + "=> steering,time\n");
         // Update the orientation, velocity and rotation
         orientation += rotation * time;
         velocity += steeringlin * time;
         rotation += steeringang * time;
+        //print(steeringlin * time + "=> ***\n");
 
+        //Debug.Log(steeringlin * time+ " => steer * time \n");
         if (velocity.magnitude > maxSpeed) {
             velocity.Normalize();
             velocity *= maxSpeed;
         }
-
+        
         rb.AddForce(velocity - rb.velocity, ForceMode.VelocityChange);
         position = rb.position;
         rb.MoveRotation(Quaternion.Euler(new Vector3(0, Mathf.Rad2Deg * orientation, 0)));

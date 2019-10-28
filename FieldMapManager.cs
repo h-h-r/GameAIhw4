@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// MapStateManager is the place to keep a succession of events or "states" when building 
@@ -38,6 +39,8 @@ public class FieldMapManager : MonoBehaviour {
     public GameObject spawner3;
     public Text SpawnText3;
 
+    public GameObject spawner4;//for hunter
+
     public int TreeCount;
  
     private List<GameObject> spawnedNPCs;   // When you need to iterate over a number of agents.
@@ -48,9 +51,14 @@ public class FieldMapManager : MonoBehaviour {
 
     //public int Phase => currentPhase;
 
-    LineRenderer line;                 
-    public GameObject[] Path;
+    public LineRenderer WolfLine;
+    public LineRenderer HunterLine;
+    public GameObject[] WolfPath;
+    public GameObject[] HunterPath;
     public Text narrator;                   // 
+
+    public Material WolfMaterial;
+    public Material HunterMaterial;
 
     // Use this for initialization. Create any initial NPCs here and store them in the 
     // spawnedNPCs list. You can always add/remove NPCs later on.
@@ -158,57 +166,57 @@ public class FieldMapManager : MonoBehaviour {
                     //}
                     break;
                 case 2:
-                    if (spawnedNPCs.Count > 3 && Vector3.Distance(spawnedNPCs[2].transform.position, spawnedNPCs[3].transform.position) < 12)
-                    {
-                        narrator.text = "Little Red notices the Wolf and moves toward it.";
-                        spawnedNPCs[2].GetComponent<SteeringBehavior>().target = spawnedNPCs[3].GetComponent<NPCController>();
-                        SetArrive(spawnedNPCs[2]);
-                        SetArrive(spawnedNPCs[3]);
-                        Invoke("Meeting2", 7);
-                        currentPhase++;
-                    }
+                EnterMapStateTwo();
                     break;
                 case 3:
-                    if (Vector3.Distance(spawnedNPCs[2].transform.position, house.transform.position) < 12)
-                    {
-                        spawnedNPCs[2].GetComponent<SteeringBehavior>().target = house;
-                        SetArrive(spawnedNPCs[2]);
-                    }
-                    if (Vector3.Distance(spawnedNPCs[2].transform.position, house.transform.position) < 2)
-                    {
-                        spawnedNPCs[2].GetComponent<NPCController>().DestroyPoints();
-                        spawnedNPCs[2].GetComponent<NPCController>().label.enabled = false;
-                        spawnedNPCs[2].SetActive(false);
-                    }
-                    if (Vector3.Distance(spawnedNPCs[3].transform.position, house.transform.position) < 12)
-                    {
-                        SetArrive(spawnedNPCs[3]);
-                    }
-                    if (Vector3.Distance(spawnedNPCs[3].transform.position, house.transform.position) < 2)
-                    {
-                        spawnedNPCs[3].GetComponent<NPCController>().DestroyPoints();
-                        spawnedNPCs[3].GetComponent<NPCController>().label.enabled = false;
-                        spawnedNPCs[3].SetActive(false);
-                    }
-                    if (spawnedNPCs.Count > 4 && Vector3.Distance(spawnedNPCs[4].transform.position, house.transform.position) < 12)
-                    {
-                        SetArrive(spawnedNPCs[4]);
-                    }
-                    if (spawnedNPCs.Count > 4 && Vector3.Distance(spawnedNPCs[4].transform.position, house.transform.position) < 2)
-                    {
-                        spawnedNPCs[4].GetComponent<NPCController>().DestroyPoints();
-                        spawnedNPCs[4].GetComponent<NPCController>().label.enabled = false;
-                        spawnedNPCs[4].SetActive(false);
-                        Invoke("End", 5);
-                    }
+                EnterMapStateThree();
+                    //if (Vector3.Distance(spawnedNPCs[2].transform.position, house.transform.position) < 12)
+                    //{
+                    //    spawnedNPCs[2].GetComponent<SteeringBehavior>().target = house;
+                    //    SetArrive(spawnedNPCs[2]);
+                    //}
+                    //if (Vector3.Distance(spawnedNPCs[2].transform.position, house.transform.position) < 2)
+                    //{
+                    //    spawnedNPCs[2].GetComponent<NPCController>().DestroyPoints();
+                    //    spawnedNPCs[2].GetComponent<NPCController>().label.enabled = false;
+                    //    spawnedNPCs[2].SetActive(false);
+                    //}
+                    //if (Vector3.Distance(spawnedNPCs[3].transform.position, house.transform.position) < 12)
+                    //{
+                    //    SetArrive(spawnedNPCs[3]);
+                    //}
+                    //if (Vector3.Distance(spawnedNPCs[3].transform.position, house.transform.position) < 2)
+                    //{
+                    //    spawnedNPCs[3].GetComponent<NPCController>().DestroyPoints();
+                    //    spawnedNPCs[3].GetComponent<NPCController>().label.enabled = false;
+                    //    spawnedNPCs[3].SetActive(false);
+                    //}
+                    //if (spawnedNPCs.Count > 4 && Vector3.Distance(spawnedNPCs[4].transform.position, house.transform.position) < 12)
+                    //{
+                    //    SetArrive(spawnedNPCs[4]);
+                    //}
+                    //if (spawnedNPCs.Count > 4 && Vector3.Distance(spawnedNPCs[4].transform.position, house.transform.position) < 2)
+                    //{
+                    //    spawnedNPCs[4].GetComponent<NPCController>().DestroyPoints();
+                    //    spawnedNPCs[4].GetComponent<NPCController>().label.enabled = false;
+                    //    spawnedNPCs[4].SetActive(false);
+                    //    Invoke("End", 5);
+                    //}
                     break;
-            }
+            case 4:
+                EnterMapStateFour();
+                break;
+            case 5:
+                EnterMapStateFive();
+                break;
+        }
     }
 
 
     private void EnterMapStateZero()
     {
         narrator.text = "mapstate 0\n";
+        spawnedNPCs.ForEach(Destroy);
 
         //currentPhase = 2; // or whatever. Won't necessarily advance the phase every time
 
@@ -217,6 +225,7 @@ public class FieldMapManager : MonoBehaviour {
 
     private void EnterMapStateOne() {
         narrator.text = "mapstate 1\n";
+        spawnedNPCs.ForEach(Destroy);
 
         for (int i = 0; i < 20; i++)
         {
@@ -232,22 +241,80 @@ public class FieldMapManager : MonoBehaviour {
 
     private void EnterMapStateTwo()
     {
-        narrator.text = "Entering Phase Two";
+        narrator.text = "mapstate 2\n";
+        spawnedNPCs.ForEach(Destroy);
+        this.CreateWolfPath();
+        this.CreateHunterPath();
+        int leaderMaxSpeed = 3;
+        int maxspeed = 7;
+        float saparationRadius = 1.5f;
 
-        currentPhase = 3; // or whatever. Won't necessarily advance the phase every time
+        GameObject wolfLeader = SpawnItem(spawner1, WolfPrefab, null, SpawnText3, 2);
+        wolfLeader.GetComponent<SteeringBehavior>().WolfPath = this.WolfPath;
+        wolfLeader.GetComponent<NPCController>().maxSpeed = leaderMaxSpeed;
+        wolfLeader.GetComponent<SteeringBehavior>().separationRadius = saparationRadius;
+        spawnedNPCs.Add(wolfLeader);
+        GameObject hunterLeader = SpawnItem(spawner4, HunterPrefab, null, SpawnText1, 2);
+        hunterLeader.GetComponent<SteeringBehavior>().HunterPath = this.HunterPath;
+        hunterLeader.GetComponent<NPCController>().maxSpeed = leaderMaxSpeed;
+        hunterLeader.GetComponent<SteeringBehavior>().separationRadius = saparationRadius;
+        spawnedNPCs.Add(hunterLeader);
+        for (int i = 0; i < 5; i++)
+        {
 
+            ////if (i == 0)
+            //{
+               
+            //}
+            ////else
+            //{
+                GameObject wolf = SpawnItem(spawner1, WolfPrefab, wolfLeader.GetComponent<NPCController>(), SpawnText3, 3);
+                wolf.GetComponent<SteeringBehavior>().WolfPath = this.WolfPath;
+                wolf.GetComponent<NPCController>().maxSpeed = maxspeed;
+                wolf.GetComponent<SteeringBehavior>().separationRadius = saparationRadius;
+                spawnedNPCs.Add(wolf);
+                GameObject hunter = SpawnItem(spawner4, HunterPrefab, hunterLeader.GetComponent<NPCController>(), SpawnText1, 3);
+                hunter.GetComponent<SteeringBehavior>().HunterPath = this.HunterPath;
+                hunter.GetComponent<NPCController>().maxSpeed = maxspeed;
+                hunter.GetComponent<SteeringBehavior>().separationRadius = saparationRadius;
+                spawnedNPCs.Add(hunter);
+            //}
+            
+        }
+       
+
+        currentPhase = 2;
+        previousPhase = 2; // or whatever. Won't necessarily advance the phase every time
+       
         //spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText2, 4));
     }
 
     private void EnterMapStateThree()
     {
         narrator.text = "Entering Phase Three";
-
-        currentPhase = 2; // or whatever. Won't necessarily advance the phase every time
+        currentPhase = 3;
+        previousPhase = 3;  // or whatever. Won't necessarily advance the phase every time
 
         //spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText2, 4));
     }
 
+    private void EnterMapStateFour()
+    {
+        narrator.text = "Entering Phase 4";
+        currentPhase = 4;
+        previousPhase = 4;  // or whatever. Won't necessarily advance the phase every time
+        SceneManager.LoadScene("Forest");
+        //spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText2, 4));
+    }
+
+    private void EnterMapStateFive()
+    {
+        narrator.text = "Entering Phase 5";
+        currentPhase = 5;
+        previousPhase = 5;  // or whatever. Won't necessarily advance the phase every time
+        SceneManager.LoadScene("Field");
+        //spawnedNPCs.Add(SpawnItem(spawner2, WolfPrefab, null, SpawnText2, 4));
+    }
 
     // ... Etc. Etc.
 
@@ -264,7 +331,8 @@ public class FieldMapManager : MonoBehaviour {
     private GameObject SpawnItem(GameObject spawner, GameObject spawnPrefab, NPCController target, Text spawnText, int phase)
     {
         Vector3 size = spawner.transform.localScale;
-        Vector3 position = spawner.transform.position + new Vector3(UnityEngine.Random.Range(-size.x / 2, size.x / 2), 0, UnityEngine.Random.Range(-size.z / 2, size.z / 2));
+        //Vector3 position = spawner.transform.position + new Vector3(UnityEngine.Random.Range(-size.x / 2, size.x / 2), 0, UnityEngine.Random.Range(-size.z / 2, size.z / 2));
+        Vector3 position = spawner.transform.position + new Vector3(UnityEngine.Random.Range(-size.x / 4, size.x / 4), 0, UnityEngine.Random.Range(-size.z / 4, size.z / 4));
         GameObject temp = Instantiate(spawnPrefab, position, Quaternion.identity);
         if (target)
         {
@@ -367,13 +435,31 @@ public class FieldMapManager : MonoBehaviour {
         character.GetComponent<NPCController>().DrawConcentricCircle(character.GetComponent<SteeringBehavior>().slowRadiusL);
     }
 
-    private void CreatePath()
+    private void CreateWolfPath()
     {
-        line = GetComponent<LineRenderer>();
-        line.positionCount = Path.Length;
-        for (int i = 0; i < Path.Length; i++)
+
+        //WolfLine = GetComponent<LineRenderer>();
+        WolfLine.material = WolfMaterial;
+        WolfLine.positionCount = this.WolfPath.Length;
+        //Debug.Log(WolfLine.positionCount);
+        for (int i = 0; i < this.WolfPath.Length; i++)
         {
-            line.SetPosition(i, Path[i].transform.position);
+            //Debug.Log(i+" "+ this.WolfPath[i].transform.position);
+            WolfLine.SetPosition(i, this.WolfPath[i].transform.position);
+        }
+    }
+
+    private void CreateHunterPath()
+    {
+
+        //HunterLine = GetComponent<LineRenderer>();
+        HunterLine.material = HunterMaterial;
+        HunterLine.positionCount = this.HunterPath.Length;
+        //Debug.Log(HunterLine.positionCount);
+        for (int i = 0; i < this.HunterPath.Length; i++)
+        {
+            //Debug.Log(i + " " + this.HunterPath[i].transform.position);
+            HunterLine.SetPosition(i, this.HunterPath[i].transform.position);
         }
     }
 

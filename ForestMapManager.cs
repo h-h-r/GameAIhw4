@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// MapStateManager is the place to keep a succession of events or "states" when building 
@@ -129,42 +130,15 @@ public class ForestMapManager : MonoBehaviour {
         switch (currentPhase)
             {
                 case 0:
-                    if (spawnedNPCs.Count > 1 && Vector3.Distance(spawnedNPCs[1].transform.position, spawnedNPCs[0].transform.position) < 12)
-                    {
-                        narrator.text = "The Hunter spots the wolf and believes it is his target. The Wolf runs.";
-                        spawnedNPCs[0].GetComponent<SteeringBehavior>().target = spawnedNPCs[1].GetComponent<NPCController>();
-                        spawnedNPCs[1].GetComponent<SteeringBehavior>().target = spawnedNPCs[0].GetComponent<NPCController>();
-                        spawnedNPCs[0].GetComponent<NPCController>().phase = 1;
-                        spawnedNPCs[1].GetComponent<NPCController>().phase = 2;
-                        currentPhase++;
-                    }
-                    break;
+                    narrator.text = "forest 0";
+                break;
                 case 1:
-                    if (Vector3.Distance(spawnedNPCs[1].transform.position, spawnedNPCs[0].transform.position) < 2)
-                    {
-                        narrator.text = "Both the Hunter and Wolf move to another area. Little Red arrives and moves to her house.";
-                        spawnedNPCs[0].GetComponent<NPCController>().label.enabled = false;
-                        spawnedNPCs[0].GetComponent<NPCController>().DestroyPoints();
-                        spawnedNPCs[0].SetActive(false);
-                        spawnedNPCs[1].GetComponent<NPCController>().label.enabled = false;
-                        spawnedNPCs[1].GetComponent<NPCController>().DestroyPoints();
-                        spawnedNPCs[1].SetActive(false);
-                        spawnedNPCs.Add(SpawnItem(spawner3, RedPrefab, null, SpawnText3, 5));
-                        CreatePath();
-                        Invoke("SpawnWolf2", 10);
-                        currentPhase++;
-                    }
+                narrator.text = "forest 1";
+                
                     break;
                 case 2:
-                    if (spawnedNPCs.Count > 3 && Vector3.Distance(spawnedNPCs[2].transform.position, spawnedNPCs[3].transform.position) < 12)
-                    {
-                        narrator.text = "Little Red notices the Wolf and moves toward it.";
-                        spawnedNPCs[2].GetComponent<SteeringBehavior>().target = spawnedNPCs[3].GetComponent<NPCController>();
-                        SetArrive(spawnedNPCs[2]);
-                        SetArrive(spawnedNPCs[3]);
-                        Invoke("Meeting2", 7);
-                        currentPhase++;
-                    }
+                narrator.text = "forest 2";
+                SceneManager.LoadScene("Field");
                     break;
                 case 3:
                     if (Vector3.Distance(spawnedNPCs[2].transform.position, house.transform.position) < 12)
